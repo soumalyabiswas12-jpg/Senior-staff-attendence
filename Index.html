@@ -1,0 +1,588 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101a17">
+<title>Senior Staff Attendance</title>
+
+<style>
+:root {
+  --bg:#0b1110;
+  --panel:#14201a;
+  --line:#304238;
+  --text:#edf4ef;
+  --muted:#9aaca1;
+  --green:#80c69a;
+  --red:#d77b7b;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,sans-serif;
+}
+header{
+  padding:18px;
+  background:#111c16;
+  border-bottom:1px solid var(--line);
+}
+header h2{margin:0;font-size:18px}
+header p{color:var(--muted);font-size:11px;margin:5px 0 0}
+main{max-width:1100px;margin:auto;padding:18px}
+.warning{
+  background:#332919;
+  border:1px solid #765b2d;
+  padding:13px;
+  border-radius:10px;
+  color:#f2d9a5;
+  font-size:12px;
+  margin-bottom:16px;
+}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+.card,.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:13px;
+  padding:16px;
+}
+.stat-label{font-size:11px;color:var(--muted)}
+.stat-number{font-size:27px;font-weight:bold;margin-top:8px}
+.layout{
+  display:grid;
+  grid-template-columns:1fr 1.7fr;
+  gap:14px;
+  margin-top:14px;
+}
+.panel{margin-bottom:14px}
+h3{font-size:14px;margin:0 0 13px}
+label{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  margin:12px 0 6px;
+}
+input,select{
+  width:100%;
+  padding:12px;
+  background:#0b1310;
+  border:1px solid var(--line);
+  border-radius:8px;
+  color:white;
+  font-size:14px;
+}
+button{
+  padding:11px 14px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#263b2e;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:disabled{opacity:.4}
+.danger{background:#462424}
+.actions{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+.small{font-size:12px;color:var(--muted);margin-top:10px}
+.person{
+  padding:11px;
+  background:#0c1510;
+  border:1px solid var(--line);
+  border-radius:8px;
+  margin-bottom:8px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:13px;
+}
+.online{color:var(--green)}
+.filters{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-bottom:12px;
+}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{
+  padding:11px 9px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+  font-size:12px;
+}
+th{color:var(--muted);font-size:10px}
+.badge{
+  padding:4px 7px;
+  border-radius:20px;
+  background:#24452f;
+  color:#a9e3b9;
+}
+.completed{background:#303a34;color:#cbd5ce}
+.empty{text-align:center;color:var(--muted);padding:20px}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:20px}
+#toast{
+  display:none;
+  position:fixed;
+  bottom:18px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#e7f4eb;
+  color:#102016;
+  padding:12px 18px;
+  border-radius:9px;
+  font-size:13px;
+}
+@media(max-width:750px){
+  .stats{grid-template-columns:1fr 1fr}
+  .layout{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h2>SENIOR STAFF ATTENDANCE</h2>
+  <p>LIVE RUSSIA ROLEPLAY · PERSONNEL ADMINISTRATION</p>
+</header>
+
+<main>
+
+<div class="warning">
+  ROLEPLAY PROTOTYPE: This database has public read and write access.
+  Anyone may view, create, modify or delete records. Use fictional RP
+  information only. Staff identities are not verified.
+</div>
+
+<div class="stats">
+  <div class="card">
+    <div class="stat-label">ONLINE STAFF</div>
+    <div class="stat-number" id="onlineCount">0</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">TODAY'S SESSIONS</div>
+    <div class="stat-number" id="todayCount">0</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">TODAY'S ONLINE TIME</div>
+    <div class="stat-number" id="todayHours">0m</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">TOTAL STAFF</div>
+    <div class="stat-number" id="staffCount">0</div>
+  </div>
+</div>
+
+<div class="layout">
+
+<div>
+  <section class="panel">
+    <h3>PERSONNEL CLOCK</h3>
+
+    <label for="staffName">Staff name / designation</label>
+    <input id="staffName" maxlength="50"
+      placeholder="Enter your staff name">
+
+    <div class="actions">
+      <button id="clockIn">CLOCK IN</button>
+      <button class="danger" id="clockOut">CLOCK OUT</button>
+    </div>
+
+    <div class="small" id="myStatus">
+      Enter your name to check your status.
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>LIVE PERSONNEL</h3>
+    <div id="onlineList">
+      <div class="empty">Loading...</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>DATA MANAGEMENT</h3>
+    <div class="actions">
+      <button id="export">EXPORT CSV</button>
+      <button id="refresh">REFRESH</button>
+    </div>
+    <div class="small">
+      Export attendance records matching your current filters.
+    </div>
+  </section>
+</div>
+
+<div>
+  <section class="panel">
+    <h3>ATTENDANCE REGISTER</h3>
+
+    <div class="filters">
+      <div>
+        <label for="search">Search staff</label>
+        <input id="search" placeholder="Search name">
+      </div>
+      <div>
+        <label for="dateFilter">Date</label>
+        <input id="dateFilter" type="date">
+      </div>
+      <div>
+        <label for="statusFilter">Status</label>
+        <select id="statusFilter">
+          <option value="all">All records</option>
+          <option value="online">Online</option>
+          <option value="completed">Clocked out</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:end">
+        <button id="clear">CLEAR FILTERS</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>STAFF</th>
+            <th>DATE</th>
+            <th>CLOCK IN</th>
+            <th>CLOCK OUT</th>
+            <th>DURATION</th>
+            <th>STATUS</th>
+          </tr>
+        </thead>
+        <tbody id="records">
+          <tr><td colspan="6" class="empty">Loading records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="small" id="summary"></div>
+  </section>
+
+  <section class="panel">
+    <h3>ATTENDANCE GUIDELINES</h3>
+    <div class="small">
+      1. Staff should clock in when starting duty.<br><br>
+      2. Staff should clock out when finishing duty.<br><br>
+      3. Closing the website does not automatically clock out.<br><br>
+      4. Times use the device's local timezone.<br><br>
+      5. Attendance entries are self-reported and not verified.
+    </div>
+  </section>
+</div>
+
+</div>
+<footer>Senior Staff Attendance · Roleplay use only</footer>
+</main>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+
+<script>
+// YOUR FIREBASE PROJECT CONFIGURATION
+const firebaseConfig = {
+  apiKey: "AIzaSyAAP70nfKE8CjlyLbLXbpa6hHyAws9jqOM",
+  authDomain: "senior-staff-attendence.firebaseapp.com",
+  databaseURL: "https://senior-staff-attendence-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "senior-staff-attendence",
+  storageBucket: "senior-staff-attendence.firebasestorage.app",
+  messagingSenderId: "11844114337",
+  appId: "1:11844114337:web:c72fab07679f5d9db21de0"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const sessionsRef = db.ref("seniorStaffAttendance/sessions");
+const activeRef = db.ref("seniorStaffAttendance/active");
+
+let sessions = {};
+let active = {};
+
+const el = id => document.getElementById(id);
+
+function today() {
+  const d = new Date();
+  return d.getFullYear() + "-" +
+    String(d.getMonth()+1).padStart(2,"0") + "-" +
+    String(d.getDate()).padStart(2,"0");
+}
+
+function dateOf(ms) {
+  const d = new Date(ms);
+  return d.getFullYear() + "-" +
+    String(d.getMonth()+1).padStart(2,"0") + "-" +
+    String(d.getDate()).padStart(2,"0");
+}
+
+function timeOf(ms) {
+  return ms ? new Date(ms).toLocaleTimeString([], {
+    hour:"2-digit", minute:"2-digit"
+  }) : "—";
+}
+
+function duration(ms) {
+  const minutes = Math.floor(Math.max(0,ms)/60000);
+  const hours = Math.floor(minutes/60);
+  return hours ? hours+"h "+minutes%60+"m" : minutes+"m";
+}
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#39;"
+  })[c]);
+}
+
+function message(text) {
+  const box = el("toast");
+  box.textContent = text;
+  box.style.display = "block";
+  clearTimeout(message.timer);
+  message.timer = setTimeout(() => box.style.display="none",2800);
+}
+
+function staffName() {
+  return el("staffName").value.trim().replace(/\s+/g," ");
+}
+
+function activeSession(name) {
+  return Object.values(active).find(x =>
+    x && x.name.toLowerCase() === name.toLowerCase()
+  );
+}
+
+function render() {
+  const all = Object.entries(sessions)
+    .filter(([id,s]) => s && s.name)
+    .map(([id,s]) => ({id,...s}));
+
+  const live = Object.values(active).filter(Boolean);
+  const todays = all.filter(s => s.date === today());
+
+  const todayMs = todays.reduce((sum,s) => {
+    return sum + (s.clockOut
+      ? Number(s.durationMs || 0)
+      : Math.max(0,Date.now()-s.clockIn));
+  },0);
+
+  el("onlineCount").textContent = live.length;
+  el("todayCount").textContent = todays.length;
+  el("todayHours").textContent = duration(todayMs);
+  el("staffCount").textContent =
+    new Set(all.map(s=>s.name.toLowerCase())).size;
+
+  el("onlineList").innerHTML = live.length
+    ? live.map(s => `
+      <div class="person">
+        <span>● ${escapeHTML(s.name)}
+        <br><small>Since ${timeOf(s.clockIn)}</small></span>
+        <span class="online">ONLINE</span>
+      </div>`).join("")
+    : '<div class="empty">No staff online.</div>';
+
+  const q = el("search").value.trim().toLowerCase();
+  const date = el("dateFilter").value;
+  const status = el("statusFilter").value;
+
+  const filtered = all.filter(s =>
+    (!q || s.name.toLowerCase().includes(q)) &&
+    (!date || s.date === date) &&
+    (status === "all" ||
+      (status === "online" && !s.clockOut) ||
+      (status === "completed" && !!s.clockOut))
+  ).sort((a,b)=>b.clockIn-a.clockIn);
+
+  el("records").innerHTML = filtered.length
+    ? filtered.map(s => `
+      <tr>
+        <td>${escapeHTML(s.name)}</td>
+        <td>${s.date || "—"}</td>
+        <td>${timeOf(s.clockIn)}</td>
+        <td>${timeOf(s.clockOut)}</td>
+        <td>${duration(s.clockOut
+          ? Number(s.durationMs||0)
+          : Date.now()-s.clockIn)}</td>
+        <td><span class="${s.clockOut
+          ? "badge completed" : "badge"}">
+          ${s.clockOut ? "COMPLETED" : "ONLINE"}
+        </span></td>
+      </tr>`).join("")
+    : '<tr><td colspan="6" class="empty">No records found.</td></tr>';
+
+  el("summary").textContent =
+    "Showing "+filtered.length+" of "+all.length+" records.";
+
+  const name = staffName();
+  const current = name && activeSession(name);
+
+  el("myStatus").textContent = !name
+    ? "Enter your name to check your status."
+    : current
+      ? "Currently clocked in since "+new Date(current.clockIn).toLocaleString()
+      : "No active session found for this name.";
+
+  el("clockIn").disabled = !name || !!current;
+  el("clockOut").disabled = !name || !current;
+}
+
+async function clockIn() {
+  const name = staffName();
+  if (!name) return message("Enter your name first.");
+
+  try {
+    const snapshot = await activeRef.once("value");
+    const current = snapshot.val() || {};
+
+    const duplicate = Object.values(current).some(x =>
+      x && x.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (duplicate) return message("This name is already online.");
+
+    const ref = sessionsRef.push();
+    const now = Date.now();
+
+    const session = {
+      name,
+      date: dateOf(now),
+      clockIn: now,
+      clockOut: null,
+      durationMs: 0,
+      status: "online"
+    };
+
+    await ref.set(session);
+
+    await activeRef.child(ref.key).set({
+      name,
+      clockIn: now,
+      sessionId: ref.key
+    });
+
+    message("Clock-in recorded.");
+  } catch(error) {
+    console.error(error);
+    message("Database error. Check your connection and rules.");
+  }
+}
+
+async function clockOut() {
+  const name = staffName();
+  if (!name) return message("Enter your name first.");
+
+  const entry = Object.entries(active).find(([id,x]) =>
+    x && x.name.toLowerCase() === name.toLowerCase()
+  );
+
+  if (!entry) return message("No active session found.");
+
+  const [id] = entry;
+  const now = Date.now();
+
+  try {
+    const snap = await sessionsRef.child(id).once("value");
+    const session = snap.val();
+
+    if (!session || session.clockOut)
+      return message("Session already closed or missing.");
+
+    await sessionsRef.child(id).update({
+      clockOut: now,
+      durationMs: Math.max(0,now-session.clockIn),
+      status: "completed"
+    });
+
+    await activeRef.child(id).remove();
+    message("Clock-out recorded.");
+  } catch(error) {
+    console.error(error);
+    message("Could not record clock-out.");
+  }
+}
+
+function exportCSV() {
+  const q = el("search").value.trim().toLowerCase();
+  const date = el("dateFilter").value;
+  const status = el("statusFilter").value;
+
+  const rows = Object.entries(sessions)
+    .filter(([id,s]) => s && s.name)
+    .map(([id,s]) => ({id,...s}))
+    .filter(s =>
+      (!q || s.name.toLowerCase().includes(q)) &&
+      (!date || s.date === date) &&
+      (status === "all" ||
+        (status === "online" && !s.clockOut) ||
+        (status === "completed" && !!s.clockOut))
+    );
+
+  const quote = v => '"' + String(v ?? "").replace(/"/g,'""') + '"';
+
+  const data = [
+    ["Staff","Date","Clock In","Clock Out","Duration Minutes","Status"],
+    ...rows.map(s => [
+      s.name,
+      s.date,
+      new Date(s.clockIn).toLocaleString(),
+      s.clockOut ? new Date(s.clockOut).toLocaleString() : "",
+      Math.round((s.clockOut
+        ? Number(s.durationMs||0)
+        : Date.now()-s.clockIn)/60000),
+      s.clockOut ? "Completed" : "Online"
+    ])
+  ];
+
+  const csv = data.map(row=>row.map(quote).join(",")).join("\r\n");
+  const blob = new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "senior-staff-attendance-"+today()+".csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  message("CSV export prepared.");
+}
+
+el("clockIn").addEventListener("click",clockIn);
+el("clockOut").addEventListener("click",clockOut);
+el("export").addEventListener("click",exportCSV);
+el("refresh").addEventListener("click",render);
+
+["staffName","search","dateFilter","statusFilter"].forEach(id =>
+  el(id).addEventListener("input",render)
+);
+
+el("clear").addEventListener("click",()=>{
+  el("search").value="";
+  el("dateFilter").value="";
+  el("statusFilter").value="all";
+  render();
+});
+
+sessionsRef.on("value",snapshot=>{
+  sessions = snapshot.val() || {};
+  render();
+},error=>{
+  console.error(error);
+  message("Cannot read attendance records.");
+});
+
+activeRef.on("value",snapshot=>{
+  active = snapshot.val() || {};
+  render();
+},error=>{
+  console.error(error);
+  message("Cannot read online staff.");
+});
+
+setInterval(render,30000);
+</script>
+</body>
+</html>
